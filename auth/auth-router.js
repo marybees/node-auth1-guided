@@ -1,5 +1,7 @@
 const router = require("express").Router();
 const Users = require("../users/users-model.js");
+const bcryptjs = require("bcryptjs");
+const { json } = require("express");
 
 // /auth/register
 
@@ -11,7 +13,7 @@ router.post("/register", (req, res) => {
 
   const rounds = process.env.HASH_ROUNDS || 6; // the higher the number, the more secure the password is
 
-  const hash = bcrypt.hashSync(credentials.password, rounds);
+  const hash = bcryptjs.hashSync(credentials.password, Number(rounds));
 
   credentials.password = hash;
 
@@ -21,4 +23,24 @@ router.post("/register", (req, res) => {
     })
     .catch((err) => res.json({ message: err.message }));
 });
+
+router.post("/login", (req, res) => {
+  const credentials = req.body;
+
+  // validate the credentials, if they are valid proceed
+
+  Users.findBy({ username: credentials.username })
+    .then((users) => {
+      const user = users[0];
+
+      if (user && bcryptjs.compareSync(credentials.password, user.password)) {
+        // username and password are good
+        res.status(200).json({ message: "welcome" });
+      } else {
+        res.status(401).json({ message: "invalid credentials" });
+      }
+    })
+    .catch((err) => res.json({ message: err.message }));
+});
+
 module.exports = router;
